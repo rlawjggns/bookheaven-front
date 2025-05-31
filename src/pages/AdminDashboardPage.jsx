@@ -28,6 +28,7 @@ export default function AdminDashboardPage() {
         memberName: '회원 이름',
         loanDate: '대출일',
         returnDate: '반납일',
+        returnStatus: '반납 여부',
         overdueStatus: '연체 여부',
         title: '제목',
         author: '저자',
@@ -147,12 +148,12 @@ export default function AdminDashboardPage() {
         const columns = Object.keys(loanResults[0]);
 
         return (
-            <div className="overflow-x-auto mt-4">
-                <table className="w-full text-sm border border-gray-300 rounded">
-                    <thead className="bg-gray-200">
+            <div className="overflow-x-auto mt-6 shadow-lg rounded-lg border border-gray-200 bg-white">
+                <table className="w-full text-sm text-left text-gray-700">
+                    <thead className="bg-cyan-600 text-white">
                     <tr>
                         {columns.map((key) => (
-                            <th key={key} className="border px-3 py-1 text-center font-medium">
+                            <th key={key} className="px-4 py-2 font-semibold">
                                 {columnLabelMap[key] || key}
                             </th>
                         ))}
@@ -160,10 +161,12 @@ export default function AdminDashboardPage() {
                     </thead>
                     <tbody>
                     {loanResults.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                             {columns.map((col) => (
-                                <td key={col} className="border px-3 py-1 text-center whitespace-nowrap">
-                                    {typeof row[col] === 'boolean' ? (row[col] ? '예' : '아니오') : row[col]?.toString() || '-'}
+                                <td key={col} className="px-4 py-2 align-middle whitespace-nowrap">
+                                    {(col === 'returnStatus' || col === 'overdueStatus')
+                                        ? (row[col] ? <span className="text-green-600 font-semibold">예</span> : <span className="text-gray-400">아니오</span>)
+                                        : row[col]?.toString() || '-'}
                                 </td>
                             ))}
                         </tr>
