@@ -12,12 +12,21 @@ export default function AdminLoginPage() {
             const params = new URLSearchParams();
             params.append("username", email);
             params.append("password", password);
-            await axios.post(`http://localhost:1271/admin/signin`, params, {
+
+            const response = await axios.post(`http://localhost:1271/admin/signin`, params, {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             });
 
+            const { accessToken, refreshToken, email: userEmail } = response.data;
+
+            // 토큰을 localStorage에 저장
+            localStorage.setItem("token", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("adminEmail", userEmail);
+
+            // ✅ 대시보드로 이동
             window.location.href = "/admin/dashboard";
         } catch {
             setError("이메일 또는 비밀번호가 잘못되었습니다.");

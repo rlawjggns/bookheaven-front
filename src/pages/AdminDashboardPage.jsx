@@ -5,13 +5,25 @@ import axios from "axios";
 export default function AdminDashboardPage() {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [memberData, setMemberData] = useState({
-        name: '',
-        tel: '',
-        memo: ''
-    });
-    const [errorMessage, setErrorMessage] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
+    const [modalType, setModalType] = useState('');
+    const [memberData, setMemberData] = useState({ name: '', tel: '', memo: '' });
+    const [bookData, setBookData] = useState({ title: '', author: '', publisher: '', description: '' });
+    const [loanQuery, setLoanQuery] = useState({ memberId: '', bookId: '' });
+    const [loanResults, setLoanResults] = useState([]);
+    const [message, setMessage] = useState({ error: '', success: '' });
+
+    const token = localStorage.getItem('token');
+
+    const modalTitleMap = {
+        createMember: '사용자 등록',
+        updateMember: '사용자 수정',
+        getMemberLoans: '사용자 대출 현황',
+        createBook: '도서 등록',
+        updateBook: '도서 수정',
+        getBookLoans: '도서 대출 이력',
+        loanBook: '도서 대출 처리',
+        returnBook: '도서 반납 처리',
+    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -19,198 +31,199 @@ export default function AdminDashboardPage() {
         navigate("/admin/login");
     };
 
-    const openModal = () => {
+    const openModal = (type) => {
+        setModalType(type);
+        setMessage({ error: '', success: '' });
         setIsModalOpen(true);
-        setErrorMessage('');
-        setSuccessMessage('');
     };
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setMemberData({
-            name: '',
-            tel: '',
-            memo: ''
-        });
+        setModalType('');
+        setMemberData({ name: '', tel: '', memo: '' });
+        setBookData({ title: '', author: '', publisher: '', description: '' });
+        setLoanQuery({ memberId: '', bookId: '' });
+        setLoanResults([]);
+        setMessage({ error: '', success: '' });
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e, type) => {
         const { name, value } = e.target;
-        setMemberData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        if (type === 'member') {
+            setMemberData(prev => ({ ...prev, [name]: value }));
+        } else if (type === 'book') {
+            setBookData(prev => ({ ...prev, [name]: value }));
+        } else if (type === 'loan') {
+            setLoanQuery(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!memberData.name || !memberData.tel) {
-            setErrorMessage('이름과 전화번호는 필수 입력사항입니다.');
-            return;
-        }
-
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.post(
-                'http://localhost:1271/admin/members',
-                memberData,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            setSuccessMessage('사용자가 성공적으로 등록되었습니다.');
-            setTimeout(() => {
-                closeModal();
-            }, 2000);
-        } catch (error) {
-            setErrorMessage('사용자 등록 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
+            let response;
+            switch (modalType) {
+                case 'createMember':
+                    if (!memberData.name || !memberData.tel) throw new Error('이름과 전화번호는 필수 입력사항입니다.');
+                    response = await axios.post('http://localhost:1271/admin/members', memberData, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                case 'updateMember':
+                    response = await axios.patch('http://localhost:1271/admin/members', memberData, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                case 'createBook':
+                    response = await axios.post('http://localhost:1271/admin/books', bookData, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                case 'updateBook':
+                    response = await axios.patch('http://localhost:1271/admin/books', bookData, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                case 'getMemberLoans':
+                    response = await axios.get(`http://localhost:1271/admin/members?memberId=${loanQuery.memberId}`, { headers: { Authorization: `Bearer ${token}` } });
+                    setLoanResults(response.data);
+                    break;
+                case 'getBookLoans':
+                    response = await axios.get(`http://localhost:1271/admin/books?bookId=${loanQuery.bookId}`, { headers: { Authorization: `Bearer ${token}` } });
+                    setLoanResults(response.data);
+                    break;
+                case 'loanBook':
+                    response = await axios.post(`http://localhost:1271/admin/books/loan?bookId=${loanQuery.bookId}&memberId=${loanQuery.memberId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                case 'returnBook':
+                    response = await axios.post(`http://localhost:1271/admin/books/return?bookId=${loanQuery.bookId}&memberId=${loanQuery.memberId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    setMessage({ success: response.data, error: '' });
+                    break;
+                default:
+                    break;
+            }
+        } catch (err) {
+            setMessage({ error: err.response?.data?.message || err.message, success: '' });
         }
     };
+
+    const renderForm = () => {
+        const inputClass = "w-full p-2 border rounded mb-3";
+        switch (modalType) {
+            case 'createMember':
+            case 'updateMember':
+                return (
+                    <>
+                        <label>이름</label>
+                        <input name="name" value={memberData.name} onChange={(e) => handleInputChange(e, 'member')} className={inputClass} />
+                        <label>전화번호</label>
+                        <input name="tel" value={memberData.tel} onChange={(e) => handleInputChange(e, 'member')} className={inputClass} />
+                        <label>메모</label>
+                        <input name="memo" value={memberData.memo} onChange={(e) => handleInputChange(e, 'member')} className={inputClass} />
+                    </>
+                );
+            case 'createBook':
+            case 'updateBook':
+                return (
+                    <>
+                        <label>제목</label>
+                        <input name="title" value={bookData.title} onChange={(e) => handleInputChange(e, 'book')} className={inputClass} />
+                        <label>저자</label>
+                        <input name="author" value={bookData.author} onChange={(e) => handleInputChange(e, 'book')} className={inputClass} />
+                        <label>출판사</label>
+                        <input name="publisher" value={bookData.publisher} onChange={(e) => handleInputChange(e, 'book')} className={inputClass} />
+                        <label>설명</label>
+                        <textarea name="description" value={bookData.description} onChange={(e) => handleInputChange(e, 'book')} className={inputClass} />
+                    </>
+                );
+            case 'getMemberLoans':
+            case 'getBookLoans':
+            case 'loanBook':
+            case 'returnBook':
+                return (
+                    <>
+                        <label>회원 ID</label>
+                        <input name="memberId" value={loanQuery.memberId} onChange={(e) => handleInputChange(e, 'loan')} className={inputClass} />
+                        <label>도서 ID</label>
+                        <input name="bookId" value={loanQuery.bookId} onChange={(e) => handleInputChange(e, 'loan')} className={inputClass} />
+                    </>
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
-        <div className="min-h-screen p-8 bg-gray-50">
-            <div className="flex justify-between items-center mb-10">
-                <h1 className="text-4xl font-bold text-cyan-600">관리자 대시보드</h1>
-                <button 
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
-                >
-                    로그아웃
-                </button>
+        <div className="min-h-screen p-8 bg-gray-100 text-gray-800">
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold text-cyan-700">📚 관리자 대시보드</h1>
+                <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">로그아웃</button>
             </div>
 
-            {/* 사용자 관리 */}
-            <section className="mb-12">
-                <h2 className="mb-4 text-2xl font-semibold text-cyan-600">사용자 관리</h2>
-                <div className="flex flex-wrap gap-4">
-                    <button 
-                        onClick={openModal}
-                        className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        사용자 등록
-                    </button>
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        사용자 수정
-                    </button>
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        사용자 대출 현황 조회
-                    </button>
-                </div>
-            </section>
+            <div className="grid gap-10">
+                <section>
+                    <h2 className="text-xl font-semibold mb-4">👤 사용자 관리</h2>
+                    <div className="flex gap-4 flex-wrap">
+                        <button onClick={() => openModal('createMember')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">사용자 등록</button>
+                        <button onClick={() => openModal('updateMember')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">사용자 수정</button>
+                        <button onClick={() => openModal('getMemberLoans')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">대출 현황 조회</button>
+                    </div>
+                </section>
 
-            {/* 도서 관리 */}
-            <section className="mb-12">
-                <h2 className="mb-4 text-2xl font-semibold text-cyan-600">도서 관리</h2>
-                <div className="flex flex-wrap gap-4">
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        도서 등록
-                    </button>
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        도서 수정
-                    </button>
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        도서 조회 (대출 현황 및 이력)
-                    </button>
-                </div>
-            </section>
+                <section>
+                    <h2 className="text-xl font-semibold mb-4">📘 도서 관리</h2>
+                    <div className="flex gap-4 flex-wrap">
+                        <button onClick={() => openModal('createBook')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">도서 등록</button>
+                        <button onClick={() => openModal('updateBook')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">도서 수정</button>
+                        <button onClick={() => openModal('getBookLoans')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">도서 대출 이력</button>
+                    </div>
+                </section>
 
-            {/* 대출/반납 관리 */}
-            <section>
-                <h2 className="mb-4 text-2xl font-semibold text-cyan-600">대출/반납 관리</h2>
-                <div className="flex flex-wrap gap-4">
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        대출 처리 (도서 번호 + 사용자 번호)
-                    </button>
-                    <button className="px-6 py-3 text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
-                        반납 처리 (도서 번호 + 사용자 번호)
-                    </button>
-                </div>
-            </section>
+                <section>
+                    <h2 className="text-xl font-semibold mb-4">🔄 대출/반납 관리</h2>
+                    <div className="flex gap-4 flex-wrap">
+                        <button onClick={() => openModal('loanBook')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">대출 처리</button>
+                        <button onClick={() => openModal('returnBook')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg shadow hover:bg-cyan-700 transition">반납 처리</button>
+                    </div>
+                </section>
+            </div>
 
-            {/* 사용자 등록 모달 */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 w-full max-w-md">
-                        <h2 className="text-2xl font-semibold text-cyan-600 mb-4">사용자 등록</h2>
-
-                        {errorMessage && (
-                            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                                {errorMessage}
-                            </div>
-                        )}
-
-                        {successMessage && (
-                            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-                                {successMessage}
-                            </div>
-                        )}
-
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+                        <h2 className="text-lg font-semibold mb-4">{modalTitleMap[modalType]}</h2>
+                        {message.error && <div className="text-red-500 mb-2">{message.error}</div>}
+                        {message.success && <div className="text-green-500 mb-2">{message.success}</div>}
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 mb-2" htmlFor="name">
-                                    이름 *
-                                </label>
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    value={memberData.name}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-cyan-500"
-                                    required
-                                />
-                            </div>
-
-                            <div className="mb-4">
-                                <label className="block text-gray-700 mb-2" htmlFor="tel">
-                                    전화번호 *
-                                </label>
-                                <input
-                                    id="tel"
-                                    name="tel"
-                                    type="text"
-                                    value={memberData.tel}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-cyan-500"
-                                    required
-                                    placeholder="010-0000-0000"
-                                />
-                            </div>
-
-                            <div className="mb-6">
-                                <label className="block text-gray-700 mb-2" htmlFor="memo">
-                                    메모
-                                </label>
-                                <textarea
-                                    id="memo"
-                                    name="memo"
-                                    value={memberData.memo}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-cyan-500"
-                                    rows="3"
-                                    placeholder="부서나 기타 정보"
-                                ></textarea>
-                            </div>
-
-                            <div className="flex justify-end space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition"
-                                >
-                                    취소
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-white bg-cyan-600 rounded hover:bg-cyan-700 transition"
-                                >
-                                    등록
-                                </button>
+                            {renderForm()}
+                            <div className="mt-4 flex justify-end gap-2">
+                                <button type="button" onClick={closeModal} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">취소</button>
+                                <button type="submit" className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">확인</button>
                             </div>
                         </form>
+
+                        {loanResults.length > 0 && (
+                            <div className="mt-6">
+                                <h3 className="font-semibold mb-2">조회 결과</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border border-gray-300">
+                                        <thead className="bg-gray-200">
+                                        <tr>
+                                            {Object.keys(loanResults[0]).map((key, idx) => (
+                                                <th key={idx} className="border px-2 py-1">{key}</th>
+                                            ))}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {loanResults.map((item, idx) => (
+                                            <tr key={idx}>
+                                                {Object.values(item).map((val, i) => (
+                                                    <td key={i} className="border px-2 py-1">{val?.toString()}</td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
