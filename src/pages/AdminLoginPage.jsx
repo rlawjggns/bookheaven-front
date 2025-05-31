@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -35,6 +37,14 @@ export default function AdminLoginPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-bg-color px-4">
+            {/* 사용자 도서 조회 버튼 */}
+            <button
+                onClick={() => navigate("/library")}
+                className="absolute top-6 right-6 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md"
+            >
+                도서 조회로 이동
+            </button>
+
             <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
                 <h2 className="mb-8 text-3xl font-bold text-center text-main-color">
                     관리자 로그인
