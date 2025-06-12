@@ -23,12 +23,10 @@ export default function AdminLoginPage() {
 
             const { accessToken, refreshToken, email: userEmail } = response.data;
 
-            // 토큰을 localStorage에 저장
             localStorage.setItem("token", accessToken);
             localStorage.setItem("refreshToken", refreshToken);
             localStorage.setItem("adminEmail", userEmail);
 
-            // ✅ 대시보드로 이동
             window.location.href = "/admin/dashboard";
         } catch {
             setError("이메일 또는 비밀번호가 잘못되었습니다.");
@@ -37,7 +35,6 @@ export default function AdminLoginPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-bg-color px-4">
-            {/* 사용자 도서 조회 버튼 */}
             <button
                 onClick={() => navigate("/library")}
                 className="absolute top-6 right-6 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md"

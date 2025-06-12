@@ -13,11 +13,9 @@ const BookSearchPage = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [error, setError] = useState(null);
-    const size = 10;
+    const size = 2;
     const navigate = useNavigate();
 
-
-    // 검색 디바운싱
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(search);
@@ -26,7 +24,6 @@ const BookSearchPage = () => {
         return () => clearTimeout(handler);
     }, [search]);
 
-    // 도서 데이터 불러오기
     const fetchBooks = useCallback(async () => {
         setError(null);
         try {
@@ -71,7 +68,6 @@ const BookSearchPage = () => {
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
-            {/* 관리자 로그인 버튼 */}
             <button
                 onClick={() => navigate('/admin/login')}
                 className="absolute top-4 right-4 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md"
@@ -152,7 +148,6 @@ const BookSearchPage = () => {
                 </table>
             </div>
 
-            {/* 페이지네이션 */}
             <div className="flex justify-center mt-6 space-x-2">
                 {[...Array(totalPages)].map((_, i) => (
                     <button

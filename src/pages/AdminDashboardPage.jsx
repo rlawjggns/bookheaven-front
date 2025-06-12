@@ -14,7 +14,6 @@ export default function AdminDashboardPage() {
 
     const token = localStorage.getItem('token');
 
-    // 한글 컬럼명 매핑, 기존 컬럼명 + 대출 결과에 자주 나오는 필드 추가
     const columnLabelMap = {
         id: 'ID',
         name: '이름',
@@ -37,7 +36,6 @@ export default function AdminDashboardPage() {
         price: '가격'
     };
 
-    // 버튼 스타일 재사용
     const btnClass = "px-4 py-2 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400";
     const btnPrimary = btnClass + " bg-cyan-600 text-white hover:bg-cyan-700";
     const btnSecondary = btnClass + " bg-gray-300 text-gray-800 hover:bg-gray-400";
